@@ -1,5 +1,15 @@
 import PDFDocument from "pdfkit";
 import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export const invoicePathFor = (bookingId) =>
+  path.join(__dirname, "../invoices", `invoice-${bookingId}.pdf`);
+
+const formatDate = (date) => new Date(date).toISOString().slice(0, 10);
+
 
 export const generateInvoice = ({
   bookingId,
@@ -11,69 +21,47 @@ export const generateInvoice = ({
   totalAmount,
   paymentId,
   orderId,
-  filePath,
-}) => {
-  const doc = new PDFDocument();
+  filePath = invoicePathFor(bookingId),
+}) =>
+  new Promise((resolve, reject) => {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
 
+    const doc = new PDFDocument();
+    const stream = fs.createWriteStream(filePath);
 
-  const stream =fs.createWriteStream(filePath);
-  
+    stream.on("finish", () => resolve(filePath));
+    stream.on("error", reject);
+    doc.on("error", reject);
 
-  console.log("invoice path:",filePath);
+    doc.pipe(stream);
 
-  stream.on("finish",()=>{
-    console.log("Invoice PDF created successfully");
+    doc.fontSize(20).text("VEHICLE RENTAL PLATFORM", { align: "center" });
+    doc.moveDown();
+    doc.fontSize(16).text("INVOICE", { align: "center" });
+    doc.moveDown(2);
+
+    doc.fontSize(12);
+    doc.text(`Booking ID: ${bookingId}`);
+    doc.text(`Customer: ${customerName}`);
+    doc.text(`Email: ${customerEmail}`);
+    doc.moveDown();
+
+    doc.text(`Vehicle: ${vehicleName}`);
+    doc.text(`Start Date: ${formatDate(startDate)}`);
+    doc.text(`End Date: ${formatDate(endDate)}`);
+    doc.moveDown();
+
+    doc.text(`Total Amount: INR ${totalAmount}`);
+    doc.moveDown();
+
+    doc.text("Payment Status: Paid");
+    doc.text(`Payment ID: ${paymentId}`);
+    doc.text(`Order ID: ${orderId}`);
+    doc.moveDown(2);
+
+    doc.text("Thank you for choosing Vehicle Rental Platform.", {
+      align: "center",
+    });
+
+    doc.end();
   });
-
-   stream.on("error",(error)=>{
-    console.log("Invoice PDF error:",error);
-  });
-  
-
-  doc.pipe(stream);
-
-  doc.fontSize(20).text("VEHICLE RENTAL PLATFORM", {
-    align: "center",
-  });
-
-  doc.moveDown();
-
-  doc.fontSize(16).text("INVOICE", {
-    align: "center",
-  });
-
-  doc.moveDown(2);
-
-  doc.fontSize(12);
-
-  doc.text(`Booking ID: ${bookingId}`);
-  doc.text(`Customer: ${customerName}`);
-  doc.text(`Email: ${customerEmail}`);
-
-  doc.moveDown();
-
-  doc.text(`Vehicle: ${vehicleName}`);
-  doc.text(`Start Date: ${startDate}`);
-  doc.text(`End Date: ${endDate}`);
-
-  doc.moveDown();
-
-
-  doc.text(`Total Amount: INR ${totalAmount}`);
-
-  doc.moveDown();
-
-  doc.text(`Payment Status: Paid`);
-  doc.text(`Payment ID: ${paymentId}`);
-  doc.text(`Order ID: ${orderId}`);
-
-  doc.moveDown(2);
-
-  doc.text("Thank you for choosing Vehicle Rental Platform.", {
-    align: "center",
-  });
-
-  doc.end();
-
-  return doc;
-};

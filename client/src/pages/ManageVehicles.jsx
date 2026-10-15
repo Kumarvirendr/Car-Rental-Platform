@@ -1,7 +1,9 @@
+import { vehicleImageUrl } from "../config";
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import { UPLOADS_URL } from "../config";
 
 const ManageVehicles = () => {
   const [vehicles, setVehicle] = useState([]);
@@ -10,7 +12,7 @@ const ManageVehicles = () => {
 
   const getVehicles = async () => {
     try {
-      const response = await api.get("/vehicles");
+      const response = await api.get("/vehicles", { params: { limit: 50 } });
       console.log(response.data);
       setVehicle(response.data.data);
     } catch (error) {
@@ -43,7 +45,7 @@ const ManageVehicles = () => {
       getVehicles();
     } catch (error) {
       console.log(error);
-      toast.error("Delete Failed");
+       toast.error(error.response?.data?.message || "Delete Failed");
     } finally {
       setLoadingId(null);
     }
@@ -59,7 +61,7 @@ const ManageVehicles = () => {
         >
         {vehicle.image && (
   <img
-    src={`http://localhost:5000/uploads/${vehicle.image}`}
+  src={vehicleImageUrl(vehicle.image)}
     alt={vehicle.name}
     className="w-full h-48 object-cover rounded-lg mb-4"
   />

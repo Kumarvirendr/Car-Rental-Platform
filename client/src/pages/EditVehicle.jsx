@@ -1,7 +1,9 @@
+import { vehicleImageUrl } from "../config";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import { toast } from "react-toastify";
+import { UPLOADS_URL } from "../config";
 
 const EditVehicle = () => {
   const { id } = useParams();
@@ -32,7 +34,10 @@ const EditVehicle = () => {
       setFuelType(vehicle.fuelType);
       setPricePerDay(vehicle.pricePerDay);
       setAvailable(vehicle.available);
-      setPreview(`http://localhost:5000/uploads/${vehicle.image}`);
+ 
+ setPreview(vehicleImageUrl(vehicle.image))
+
+
     } catch (error) {
       console.log(error);
     }

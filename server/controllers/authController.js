@@ -1,12 +1,28 @@
 import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
 
 // Register User
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+      if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email and password are required",
+      });
+    }
+
+      if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
 
     // Check existing user
     const existingUser = await User.findOne({ email });
@@ -54,10 +70,10 @@ const loginUser = async (req, res) => {
     // Check User
     const user = await User.findOne({ email });
 
-    if (!user) {
+     if (!user) {
       return res.status(400).json({
         success: false,
-        message: "User not found",
+        message: "Invalid email or password",
       });
     }
 
@@ -67,7 +83,7 @@ const loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({
         success: false,
-        message: "Invalid Password",
+        message: "Invalid email or password",
       });
     }
 
@@ -108,37 +124,51 @@ const forgotPassword = async (req, res) => {
       email: req.body.email,
     });
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
+       if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "If this email is registered, a reset link has been sent",
       });
     }
 
     const resetToken = user.getResetPasswordToken();
 
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+   
 
     await user.save();
 
-    // res.status(200).json({
-    //   success:true,
-    //   resetToken,
-    // });
+   
 
-    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
-    const message = `You requested a password reset.Reset your password using this link:${resetUrl} if you did not request this request, please ignore this email.`;
+  const clientUrl = (process.env.CLIENT_URL || "http://localhost:5173")
+  .split(",")[0]
+  .trim();
+    const resetUrl=`${clientUrl}/reset-password/${resetToken}`;
 
-    await sendEmail({
+    const message = `You requested a password reset.Reset your password using this link:${resetUrl} This link is valid for 15 minutes. If you did not request this, please ignore this email.`;
+
+    try{
+       await sendEmail({
       email: user.email,
       subject: "Password Reset Request",
       message,
     });
 
+    }catch(error){
+      console.error("Reset email failed:",error.message);
+      user.resetPasswordToken=undefined;
+      user.resetPasswordExpire=undefined;
+      await user.save();
+      return res.status(500).json({
+        success:false,
+        message:"Could not send the reset email. Please try again later.",
+      });
+
+    }
+
+   
     res.status(200).json({
       success: true,
-      message: "Reset email sent successfully",
+      message: "If this email  is registered,a reset link has been sent",
     });
   } catch (error) {
     res.status(500).json({
@@ -150,8 +180,13 @@ const forgotPassword = async (req, res) => {
 
 const resetPassword = async (req, res) => {
   try {
+     const hashedToken = crypto
+      .createHash("sha256")
+      .update(req.params.token)
+      .digest("hex");
+
     const user = await User.findOne({
-      resetPasswordToken: req.params.token,
+      resetPasswordToken: hashedToken,
       resetPasswordExpire: { $gt: Date.now() },
     });
 
@@ -267,6 +302,13 @@ const changePassword=async(req,res)=>{
       return res.status(400).json({
         success:false,
         message:"Old password and new password are required",
+      });
+    }
+
+      if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 6 characters",
       });
     }
 

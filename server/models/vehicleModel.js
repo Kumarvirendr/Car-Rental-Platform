@@ -33,10 +33,14 @@ const vehicleSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    image: {
-      type: String,
-      default: "",
-    },
+   image: {
+  type: String,
+  default: "",
+},
+imagePublicId: {
+  type: String,
+  default: "",
+},
     reviews: [
       {
         type: mongoose.Schema.Types.ObjectId,
