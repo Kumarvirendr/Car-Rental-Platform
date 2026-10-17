@@ -73,4 +73,4 @@ npm run dev
 
 **Virendra Kumar**
 
-GitHub · LinkedIn · vk786256@gmail.com
+[GitHub](https://github.com/Kumarvirendr) · [LinkedIn](https://www.linkedin.com/in/virendra-kumar-mern/) · vk786256@gmail.com
