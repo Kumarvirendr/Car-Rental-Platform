@@ -149,7 +149,7 @@ const cancelBooking = async (req, res) => {
 
     let refunded = false;
 
-    if (booking.paymentId && booking.paymentStatus === "Paid") {
+       if (booking.paymentId && booking.paymentStatus === "Paid") {
       try {
         const refund = await razorpay.payments.refund(booking.paymentId, {
           amount: Math.round(booking.totalAmount * 100),
@@ -159,15 +159,20 @@ const cancelBooking = async (req, res) => {
         booking.refundId = refund.id;
         refunded = true;
       } catch (error) {
-        console.error(
-          "Refund failed:",
-          error?.error?.description || error.message,
-        );
+        const description = error?.error?.description || error.message;
 
-        return res.status(502).json({
-          success: false,
-          message: "Refund failed, so the booking was not cancelled. Please try again.",
-        });
+      
+        if (description?.includes("fully refunded")) {
+          booking.paymentStatus = "Refunded";
+          refunded = true;
+        } else {
+          console.error("Refund failed:", description);
+
+          return res.status(502).json({
+            success: false,
+            message: "Refund failed, so the booking was not cancelled. Please try again.",
+          });
+        }
       }
     }
 
